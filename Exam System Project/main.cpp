@@ -175,12 +175,162 @@ public:
     }
 };
 
+class Department
+{
+private:
+    string departmentName;
+    vector<string> subjectNames;
+
+public:
+    Department(string name)
+        : departmentName(name)
+    {
+    }
+
+    string getName() const
+    {
+        return departmentName;
+    }
+
+    void addSubject(string subjectName)
+    {
+        subjectNames.push_back(subjectName);
+    }
+
+    bool hasSubject(const string &subjectName) const
+    {
+        for (const string &subject : subjectNames)
+        {
+            if (subject == subjectName)
+                return true;
+        }
+
+        return false;
+    }
+
+    void displaySubjects() const
+    {
+        cout << "\nDepartment: " << departmentName << endl;
+
+        if (subjectNames.empty())
+        {
+            cout << "No subjects assigned.\n";
+            return;
+        }
+
+        for (const string &subject : subjectNames)
+            cout << "- " << subject << endl;
+    }
+};
+
 class Admin
 {
 private:
     vector<Subject> subjects;
+    vector<Department> departments;
 
 public:
+    void assignSubjectToDepartment()
+    {
+        if (departments.empty() || subjects.empty())
+        {
+            cout << "Add departments and subjects first.\n";
+            return;
+        }
+
+        displayDepartments();
+
+        int departmentIndex;
+        cout << "Choose department number: ";
+        cin >> departmentIndex;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        if (departmentIndex < 1 ||
+            departmentIndex > static_cast<int>(departments.size()))
+        {
+            cout << "Invalid department number.\n";
+            return;
+        }
+
+        displaySubjects();
+
+        int subjectIndex;
+        cout << "Choose subject number: ";
+        cin >> subjectIndex;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        if (subjectIndex < 1 ||
+            subjectIndex > static_cast<int>(subjects.size()))
+        {
+            cout << "Invalid subject number.\n";
+            return;
+        }
+
+        string subjectName = subjects[subjectIndex - 1].getName();
+
+        if (departments[departmentIndex - 1].hasSubject(subjectName))
+        {
+            cout << "Subject already assigned to this department.\n";
+            return;
+        }
+
+        departments[departmentIndex - 1].addSubject(subjectName);
+
+        cout << "Subject assigned successfully!\n";
+    }
+
+    void addDepartment()
+    {
+        string name;
+
+        cout << "Enter department name: ";
+        getline(cin, name);
+
+        departments.emplace_back(name);
+
+        cout << "Department added successfully!\n";
+    }
+
+    void displayDepartments() const
+    {
+        if (departments.empty())
+        {
+            cout << "No departments available.\n";
+            return;
+        }
+
+        for (int i = 0; i < departments.size(); i++)
+        {
+            cout << i + 1 << ". "
+                 << departments[i].getName() << endl;
+        }
+    }
+
+    void displayDepartmentSubjects() const
+    {
+        if (departments.empty())
+        {
+            cout << "No departments available.\n";
+            return;
+        }
+
+        displayDepartments();
+
+        int departmentIndex;
+        cout << "Choose department number: ";
+        cin >> departmentIndex;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        if (departmentIndex < 1 ||
+            departmentIndex > static_cast<int>(departments.size()))
+        {
+            cout << "Invalid department number.\n";
+            return;
+        }
+
+        departments[departmentIndex - 1].displaySubjects();
+    }
+
     void addSubject()
     {
         string name;
@@ -336,14 +486,20 @@ int main()
 {
     Admin admin;
 
+    admin.addDepartment();
+    admin.addDepartment();
+    admin.displayDepartments();
+
     admin.addSubject();
     admin.addSubject();
+    admin.displaySubjects();
 
     admin.addQuestion();
     admin.addQuestion();
 
     admin.displayQuestions();
-    admin.startQuiz();
 
+    admin.assignSubjectToDepartment();
+    admin.displayDepartmentSubjects();
     return 0;
 }
