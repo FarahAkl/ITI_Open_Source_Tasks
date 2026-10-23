@@ -27,6 +27,7 @@ int main()
         cout << "11. Display Students\n";
         cout << "12. Add Reservation\n";
         cout << "13. Display Reservations\n";
+        cout << "14. Start Quiz\n";
         cout << "0. Exit\n";
         cout << "Enter your choice: ";
 
@@ -78,6 +79,9 @@ int main()
             break;
         case 13:
             admin.displayReservations();
+            break;
+        case 14:
+            admin.startQuiz();
             break;
         case 0:
             admin.saveData();

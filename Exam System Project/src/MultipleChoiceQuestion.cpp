@@ -55,3 +55,8 @@ bool MultipleChoiceQuestion::checkAnswer(
 
     return true;
 }
+
+vector<char> MultipleChoiceQuestion::getCorrectAnswers() const
+{
+    return correctAnswers;
+}

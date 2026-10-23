@@ -16,3 +16,8 @@ bool SingleChoiceQuestion::checkAnswer(
     return answers.size() == 1 &&
            toupper(answers[0]) == correctAnswer;
 }
+
+char SingleChoiceQuestion::getCorrectAnswer() const
+{
+    return correctAnswer;
+}

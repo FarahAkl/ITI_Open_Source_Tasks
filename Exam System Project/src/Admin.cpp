@@ -10,6 +10,7 @@
 #include <utility>
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
 
 using namespace std;
 
@@ -677,10 +678,13 @@ void Admin::saveData() const
 {
     ofstream departmentFile("data/departments.txt");
     ofstream studentFile("data/students.txt");
+    ofstream subjectFile("data/subjects.txt");
+    ofstream questionFile("data/questions.txt");
 
-    if (!departmentFile || !studentFile)
+    if (!departmentFile || !studentFile ||
+        !subjectFile || !questionFile)
     {
-        cout << "Error saving data.\n";
+        cout << "Error saving data. Check the data folder.\n";
         return;
     }
 
@@ -697,6 +701,53 @@ void Admin::saveData() const
                     << student.getPassword() << '\n';
     }
 
+    for (const Subject &subject : subjects)
+    {
+        subjectFile << subject.getName() << '\n';
+
+        for (const auto &question : subject.getQuestions())
+        {
+            questionFile << subject.getName() << '|';
+
+            if (const auto *single =
+                    dynamic_cast<const SingleChoiceQuestion *>(question.get()))
+            {
+                questionFile << 'S' << '|';
+                questionFile << single->getText() << '|';
+
+                for (int i = 0; i < 4; i++)
+                {
+                    questionFile << single->getOption(i) << '|';
+                }
+
+                questionFile << single->getCorrectAnswer() << '\n';
+            }
+            else if (const auto *multiple =
+                         dynamic_cast<const MultipleChoiceQuestion *>(question.get()))
+            {
+                questionFile << 'M' << '|';
+                questionFile << multiple->getText() << '|';
+
+                for (int i = 0; i < 4; i++)
+                {
+                    questionFile << multiple->getOption(i) << '|';
+                }
+
+                vector<char> answers = multiple->getCorrectAnswers();
+
+                for (size_t i = 0; i < answers.size(); i++)
+                {
+                    if (i > 0)
+                        questionFile << ',';
+
+                    questionFile << answers[i];
+                }
+
+                questionFile << '\n';
+            }
+        }
+    }
+
     cout << "Data saved successfully.\n";
 }
 
@@ -704,15 +755,15 @@ void Admin::loadData()
 {
     ifstream departmentFile("data/departments.txt");
     ifstream studentFile("data/students.txt");
+    ifstream subjectFile("data/subjects.txt");
+    ifstream questionFile("data/questions.txt");
 
     string line;
 
     while (getline(departmentFile, line))
     {
         if (!line.empty())
-        {
             departments.emplace_back(line);
-        }
     }
 
     while (getline(studentFile, line))
@@ -731,9 +782,7 @@ void Admin::loadData()
             try
             {
                 int id = stoi(idText);
-
-                students.emplace_back(
-                    id, name, username, password);
+                students.emplace_back(id, name, username, password);
             }
             catch (const invalid_argument &)
             {
@@ -743,6 +792,98 @@ void Admin::loadData()
             {
                 cout << "Skipping invalid student ID.\n";
             }
+        }
+    }
+
+    while (getline(subjectFile, line))
+    {
+        if (!line.empty())
+            subjects.emplace_back(line);
+    }
+
+    while (getline(questionFile, line))
+    {
+        stringstream stream(line);
+        string subjectName;
+        string type;
+        string questionText;
+        string choices[4];
+        string answersText;
+
+        if (!getline(stream, subjectName, '|') ||
+            !getline(stream, type, '|') ||
+            !getline(stream, questionText, '|'))
+        {
+            continue;
+        }
+
+        bool validRecord = true;
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (!getline(stream, choices[i], '|'))
+            {
+                validRecord = false;
+                break;
+            }
+        }
+
+        if (!validRecord || !getline(stream, answersText))
+            continue;
+
+        for (Subject &subject : subjects)
+        {
+            if (subject.getName() != subjectName)
+                continue;
+
+            if (type == "S" && answersText.size() == 1)
+            {
+                char answer = static_cast<char>(
+                    toupper(static_cast<unsigned char>(answersText[0])));
+
+                if (answer >= 'A' && answer <= 'D')
+                {
+                    subject.addQuestion(
+                        make_unique<SingleChoiceQuestion>(
+                            questionText, choices, answer));
+                }
+            }
+            else if (type == "M")
+            {
+                vector<char> answers;
+                stringstream answerStream(answersText);
+                string answerText;
+                bool validAnswers = true;
+
+                while (getline(answerStream, answerText, ','))
+                {
+                    if (answerText.size() != 1)
+                    {
+                        validAnswers = false;
+                        break;
+                    }
+
+                    char answer = static_cast<char>(
+                        toupper(static_cast<unsigned char>(answerText[0])));
+
+                    if (answer < 'A' || answer > 'D')
+                    {
+                        validAnswers = false;
+                        break;
+                    }
+
+                    answers.push_back(answer);
+                }
+
+                if (validAnswers && !answers.empty())
+                {
+                    subject.addQuestion(
+                        make_unique<MultipleChoiceQuestion>(
+                            questionText, choices, answers));
+                }
+            }
+
+            break;
         }
     }
 }

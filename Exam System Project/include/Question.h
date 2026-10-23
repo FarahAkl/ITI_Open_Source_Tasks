@@ -14,6 +14,8 @@ protected:
 
 public:
     Question(string text, string choices[]);
+    string getText() const;
+    string getOption(int index) const;
 
     void display() const;
 

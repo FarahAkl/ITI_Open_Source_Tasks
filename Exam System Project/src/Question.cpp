@@ -17,3 +17,16 @@ void Question::display() const
              << " - " << options[i] << endl;
     }
 }
+
+string Question::getText() const
+{
+    return questionText;
+}
+
+string Question::getOption(int index) const
+{
+    if (index < 0 || index >= 4)
+        return "";
+
+    return options[index];
+}

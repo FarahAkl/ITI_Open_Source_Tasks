@@ -9,6 +9,7 @@ private:
 
 public:
     SingleChoiceQuestion(string text, string choices[], char answer);
+    char getCorrectAnswer() const;
 
     bool checkAnswer(const vector<char> &answers) const override;
 };

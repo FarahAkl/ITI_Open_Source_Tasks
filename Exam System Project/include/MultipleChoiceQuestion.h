@@ -12,6 +12,7 @@ public:
         string text,
         string choices[],
         vector<char> answers);
-
+        
+    vector<char> getCorrectAnswers() const;
     bool checkAnswer(const vector<char> &answers) const override;
 };

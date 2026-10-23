@@ -79,3 +79,8 @@ int Subject::getQuestionsCount() const
 {
     return static_cast<int>(questions.size());
 }
+
+const vector<unique_ptr<Question>> &Subject::getQuestions() const
+{
+    return questions;
+}

@@ -27,4 +27,6 @@ public:
     void displayQuestions() const;
 
     int getQuestionsCount() const;
+
+    const vector<unique_ptr<Question>> &getQuestions() const;
 };
