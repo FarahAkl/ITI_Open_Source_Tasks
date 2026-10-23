@@ -23,8 +23,7 @@ void Admin::addExam()
     int duration;
 
     cout << "Enter exam name: ";
-    getline(cin, name);
-
+    getline(cin >> ws, name);
     if (name.empty())
     {
         cout << "Exam name cannot be empty.\n";
@@ -164,8 +163,7 @@ void Admin::addDepartment()
     string name;
 
     cout << "Enter department name: ";
-    getline(cin, name);
-
+    getline(cin >> ws, name);
     if (name.empty())
     {
         cout << "Department name cannot be empty.\n";
@@ -230,8 +228,7 @@ void Admin::addSubject()
     string name;
 
     cout << "Enter subject name: ";
-    getline(cin, name);
-
+    getline(cin >> ws, name);
     if (name.empty())
     {
         cout << "Subject name cannot be empty.\n";
@@ -536,4 +533,140 @@ void Admin::startExam()
     }
 
     cout << "Subject not found.\n";
+}
+
+void Admin::addStudent()
+{
+    int id = static_cast<int>(students.size()) + 1;
+    string name;
+    string username;
+    string password;
+
+    cout << "Enter student name: ";
+    getline(cin >> ws, name);
+
+    cout << "Enter username: ";
+    getline(cin, username);
+
+    for (const Student &student : students)
+    {
+        if (student.getUsername() == username)
+        {
+            cout << "Username already exists.\n";
+            return;
+        }
+    }
+
+    cout << "Enter password: ";
+    getline(cin, password);
+
+    students.emplace_back(id, name, username, password);
+
+    cout << "Student added successfully. ID: " << id << '\n';
+}
+
+void Admin::displayStudents() const
+{
+    if (students.empty())
+    {
+        cout << "No students available.\n";
+        return;
+    }
+
+    for (const Student &student : students)
+    {
+        student.display();
+    }
+}
+
+void Admin::addReservation()
+{
+    if (students.empty())
+    {
+        cout << "Add students before creating reservations.\n";
+        return;
+    }
+
+    if (exams.empty())
+    {
+        cout << "Add exams before creating reservations.\n";
+        return;
+    }
+
+    displayStudents();
+
+    int studentId;
+    cout << "Enter student ID: ";
+    if (!(cin >> studentId))
+    {
+        cin.clear();
+        cin.ignore(10000, '\n');
+        cout << "Invalid student ID.\n";
+        return;
+    }
+
+    bool studentExists = false;
+
+    for (const Student &student : students)
+    {
+        if (student.getId() == studentId)
+        {
+            studentExists = true;
+            break;
+        }
+    }
+
+    if (!studentExists)
+    {
+        cout << "Student not found.\n";
+        return;
+    }
+
+    displayExams();
+
+    int examNumber;
+    cout << "Enter exam number: ";
+    if (!(cin >> examNumber))
+    {
+        cin.clear();
+        cin.ignore(10000, '\n');
+        cout << "Invalid exam number.\n";
+        return;
+    }
+
+    if (examNumber < 1 || examNumber > static_cast<int>(exams.size()))
+    {
+        cout << "Exam not found.\n";
+        return;
+    }
+
+    for (const Reservation &reservation : reservations)
+    {
+        if (reservation.getStudentId() == studentId &&
+            reservation.getExamNumber() == examNumber)
+        {
+            cout << "This student already has a reservation for this exam.\n";
+            return;
+        }
+    }
+
+    int reservationId = static_cast<int>(reservations.size()) + 1;
+
+    reservations.emplace_back(reservationId, studentId, examNumber);
+
+    cout << "Reservation created successfully.\n";
+}
+
+void Admin::displayReservations() const
+{
+    if (reservations.empty())
+    {
+        cout << "No reservations available.\n";
+        return;
+    }
+
+    for (const Reservation &reservation : reservations)
+    {
+        reservation.display();
+    }
 }
