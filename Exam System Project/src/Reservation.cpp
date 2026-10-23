@@ -1,13 +1,15 @@
-
 #include "Reservation.h"
 #include <iostream>
 using namespace std;
 
-Reservation::Reservation(int reservationId, int studentId, int examNumber)
+Reservation::Reservation(int reservationId, int studentId,
+                         int examNumber, bool completed)
     : id(reservationId),
       studentId(studentId),
       examNumber(examNumber),
-      completed(false) {}
+      completed(completed)
+{
+}
 
 int Reservation::getId() const
 {

@@ -680,9 +680,11 @@ void Admin::saveData() const
     ofstream studentFile("data/students.txt");
     ofstream subjectFile("data/subjects.txt");
     ofstream questionFile("data/questions.txt");
+    ofstream examFile("data/exams.txt");
+    ofstream reservationFile("data/reservations.txt");
 
     if (!departmentFile || !studentFile ||
-        !subjectFile || !questionFile)
+        !subjectFile || !questionFile || !examFile || !reservationFile)
     {
         cout << "Error saving data. Check the data folder.\n";
         return;
@@ -748,6 +750,21 @@ void Admin::saveData() const
         }
     }
 
+    for (const Exam &exam : exams)
+    {
+        examFile << exam.getName() << '|'
+                 << exam.getSubjectName() << '|'
+                 << exam.getDuration() << '\n';
+    }
+
+    for (const Reservation &reservation : reservations)
+    {
+        reservationFile << reservation.getId() << '|'
+                        << reservation.getStudentId() << '|'
+                        << reservation.getExamNumber() << '|'
+                        << reservation.isCompleted() << '\n';
+    }
+
     cout << "Data saved successfully.\n";
 }
 
@@ -757,7 +774,10 @@ void Admin::loadData()
     ifstream studentFile("data/students.txt");
     ifstream subjectFile("data/subjects.txt");
     ifstream questionFile("data/questions.txt");
+    ifstream examFile("data/exams.txt");
+    ifstream reservationFile("data/reservations.txt");
 
+    string examLine;
     string line;
 
     while (getline(departmentFile, line))
@@ -799,6 +819,77 @@ void Admin::loadData()
     {
         if (!line.empty())
             subjects.emplace_back(line);
+    }
+
+    while (getline(examFile, examLine))
+    {
+        if (examLine.empty())
+        {
+            continue;
+        }
+
+        stringstream ss(examLine);
+        string examName;
+        string subjectName;
+        string durationText;
+
+        getline(ss, examName, '|');
+        getline(ss, subjectName, '|');
+        getline(ss, durationText, '|');
+
+        try
+        {
+            int duration = stoi(durationText);
+
+            exams.emplace_back(examName, subjectName, duration);
+        }
+        catch (const invalid_argument &)
+        {
+            cout << "Invalid exam data found.\n";
+        }
+        catch (const out_of_range &)
+        {
+            cout << "Exam duration is out of range.\n";
+        }
+    }
+
+    while (getline(reservationFile, line))
+    {
+        if (line.empty())
+            continue;
+
+        stringstream stream(line);
+        string idText;
+        string studentIdText;
+        string examNumberText;
+        string completedText;
+
+        if (!getline(stream, idText, '|') ||
+            !getline(stream, studentIdText, '|') ||
+            !getline(stream, examNumberText, '|') ||
+            !getline(stream, completedText))
+        {
+            continue;
+        }
+
+        try
+        {
+            int id = stoi(idText);
+            int studentId = stoi(studentIdText);
+            int examNumber = stoi(examNumberText);
+            bool completed = (completedText == "1");
+
+            reservations.emplace_back(
+                id, studentId, examNumber, completed);
+        }
+        catch (const invalid_argument &)
+        {
+            cout << "Skipping invalid reservation record.\n";
+        }
+        catch (const out_of_range &)
+        {
+            cout << "Skipping reservation with out-of-range data.\n";
+        }
     }
 
     while (getline(questionFile, line))

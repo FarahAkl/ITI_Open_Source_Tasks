@@ -9,7 +9,8 @@ private:
     bool completed;
 
 public:
-    Reservation(int reservationId, int studentId, int examNumber);
+    Reservation(int reservationId, int studentId, int examNumber,
+                bool completed = false);
 
     int getId() const;
     int getStudentId() const;
