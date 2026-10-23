@@ -16,6 +16,8 @@ public:
 
     string getName() const;
 
+    const vector<string> &getSubjects() const;
+
     void addSubject(string subjectName);
 
     bool hasSubject(const string &subjectName) const;

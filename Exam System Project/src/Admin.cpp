@@ -489,48 +489,117 @@ void Admin::addQuestion()
 
 void Admin::startExam()
 {
+    if (students.empty())
+    {
+        cout << "No students available.\n";
+        return;
+    }
+
     if (exams.empty())
     {
         cout << "No exams available.\n";
         return;
     }
 
-    displayExams();
+    displayStudents();
 
-    int examIndex;
-    cout << "\nChoose exam number: ";
+    int studentId;
+    cout << "Enter student ID: ";
 
-    if (!(cin >> examIndex))
+    if (!(cin >> studentId))
     {
-        cout << "Invalid input.\n";
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Invalid student ID.\n";
         return;
     }
 
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-    if (examIndex < 1 ||
-        examIndex > static_cast<int>(exams.size()))
+    bool studentExists = false;
+
+    for (const Student &student : students)
+    {
+        if (student.getId() == studentId)
+        {
+            studentExists = true;
+            break;
+        }
+    }
+
+    if (!studentExists)
+    {
+        cout << "Student not found.\n";
+        return;
+    }
+
+    displayExams();
+
+    int examNumber;
+    cout << "Choose exam number: ";
+
+    if (!(cin >> examNumber))
+    {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Invalid exam number.\n";
+        return;
+    }
+
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    if (examNumber < 1 ||
+        examNumber > static_cast<int>(exams.size()))
     {
         cout << "Invalid exam number.\n";
         return;
     }
 
-    string subjectName = exams[examIndex - 1].getSubjectName();
+    Reservation *studentReservation = nullptr;
 
-    for (const auto &subject : subjects)
+    for (Reservation &reservation : reservations)
+    {
+        if (reservation.getStudentId() == studentId &&
+            reservation.getExamNumber() == examNumber)
+        {
+            studentReservation = &reservation;
+            break;
+        }
+    }
+
+    if (studentReservation == nullptr)
+    {
+        cout << "You must reserve this exam before starting it.\n";
+        return;
+    }
+
+    if (studentReservation->isCompleted())
+    {
+        cout << "This exam has already been completed.\n";
+        return;
+    }
+
+    const Exam &exam = exams[examNumber - 1];
+    const string subjectName = exam.getSubjectName();
+
+    for (const Subject &subject : subjects)
     {
         if (subject.getName() == subjectName)
         {
             cout << "\nStarting exam: "
-                 << exams[examIndex - 1].getName() << endl;
+                 << exam.getName() << '\n';
 
             cout << "Duration: "
-                 << exams[examIndex - 1].getDuration()
-                 << " minutes\n\n";
+                 << exam.getDuration() << " minutes\n\n";
 
-            subject.startQuiz();
+            if (subject.startQuiz())
+            {
+                studentReservation->markCompleted();
+                saveData();
+
+                cout << "Exam completed successfully.\n";
+            }
+
             return;
         }
     }
@@ -682,9 +751,9 @@ void Admin::saveData() const
     ofstream questionFile("data/questions.txt");
     ofstream examFile("data/exams.txt");
     ofstream reservationFile("data/reservations.txt");
+    ofstream departmentSubjectFile("data/department_subjects.txt");
 
-    if (!departmentFile || !studentFile ||
-        !subjectFile || !questionFile || !examFile || !reservationFile)
+    if (!departmentFile || !studentFile || !subjectFile || !questionFile || !examFile || !reservationFile || !departmentSubjectFile)
     {
         cout << "Error saving data. Check the data folder.\n";
         return;
@@ -693,6 +762,15 @@ void Admin::saveData() const
     for (const Department &department : departments)
     {
         departmentFile << department.getName() << '\n';
+    }
+
+    for (const Department &department : departments)
+    {
+        for (const string &subjectName : department.getSubjects())
+        {
+            departmentSubjectFile << department.getName() << '|'
+                                  << subjectName << '\n';
+        }
     }
 
     for (const Student &student : students)
@@ -776,6 +854,7 @@ void Admin::loadData()
     ifstream questionFile("data/questions.txt");
     ifstream examFile("data/exams.txt");
     ifstream reservationFile("data/reservations.txt");
+    ifstream departmentSubjectFile("data/department_subjects.txt");
 
     string examLine;
     string line;
@@ -819,6 +898,32 @@ void Admin::loadData()
     {
         if (!line.empty())
             subjects.emplace_back(line);
+    }
+
+    while (getline(departmentSubjectFile, line))
+    {
+        if (line.empty())
+            continue;
+
+        stringstream stream(line);
+        string departmentName;
+        string subjectName;
+
+        if (!getline(stream, departmentName, '|') ||
+            !getline(stream, subjectName))
+        {
+            continue;
+        }
+
+        for (Department &department : departments)
+        {
+            if (department.getName() == departmentName &&
+                !department.hasSubject(subjectName))
+            {
+                department.addSubject(subjectName);
+                break;
+            }
+        }
     }
 
     while (getline(examFile, examLine))

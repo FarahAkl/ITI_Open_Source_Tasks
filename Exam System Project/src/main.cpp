@@ -9,7 +9,7 @@ int main()
 {
     Admin admin;
     admin.loadData();
-    int choice;
+    int choice = -1;
 
     do
     {
@@ -28,6 +28,8 @@ int main()
         cout << "12. Add Reservation\n";
         cout << "13. Display Reservations\n";
         cout << "14. Start Quiz\n";
+        cout << "15. Display Department Subjects\n";
+        cout << "16. Start Exam\n";
         cout << "0. Exit\n";
         cout << "Enter your choice: ";
 
@@ -82,6 +84,12 @@ int main()
             break;
         case 14:
             admin.startQuiz();
+            break;
+        case 15:
+            admin.displayDepartmentSubjects();
+            break;
+        case 16:
+            admin.startExam();
             break;
         case 0:
             admin.saveData();

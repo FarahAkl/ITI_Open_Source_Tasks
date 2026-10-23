@@ -40,3 +40,8 @@ void Department::displaySubjects() const
     for (const string &subject : subjectNames)
         cout << "- " << subject << endl;
 }
+
+const vector<string> &Department::getSubjects() const
+{
+    return subjectNames;
+}

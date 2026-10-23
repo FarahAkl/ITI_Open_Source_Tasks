@@ -20,7 +20,7 @@ public:
 
     bool hasQuestions() const;
 
-    void startQuiz() const;
+    bool startQuiz() const;
 
     void addQuestion(unique_ptr<Question> question);
 

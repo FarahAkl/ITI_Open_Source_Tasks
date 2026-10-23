@@ -18,12 +18,12 @@ bool Subject::hasQuestions() const
     return !questions.empty();
 }
 
-void Subject::startQuiz() const
+bool Subject::startQuiz() const
 {
     if (questions.empty())
     {
         cout << "No questions available in this subject.\n";
-        return;
+        return false;
     }
 
     int score = 0;
@@ -39,7 +39,10 @@ void Subject::startQuiz() const
         cin >> input;
 
         for (char answer : input)
-            answers.push_back(static_cast<char>(toupper(answer)));
+        {
+            answers.push_back(
+                static_cast<char>(toupper(static_cast<unsigned char>(answer))));
+        }
 
         if (question->checkAnswer(answers))
         {
@@ -54,6 +57,8 @@ void Subject::startQuiz() const
 
     cout << "Your score: " << score
          << " / " << questions.size() << endl;
+
+    return true;
 }
 
 void Subject::addQuestion(unique_ptr<Question> question)
