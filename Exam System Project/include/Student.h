@@ -17,7 +17,8 @@ public:
     int getId() const;
     string getName() const;
     string getUsername() const;
-
+    string getPassword() const;
+    
     bool checkLogin(const string &enteredUsername, const string &enteredPassword) const;
     void display() const;
 };

@@ -8,6 +8,8 @@
 #include <cctype>
 #include <memory>
 #include <utility>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -668,5 +670,79 @@ void Admin::displayReservations() const
     for (const Reservation &reservation : reservations)
     {
         reservation.display();
+    }
+}
+
+void Admin::saveData() const
+{
+    ofstream departmentFile("data/departments.txt");
+    ofstream studentFile("data/students.txt");
+
+    if (!departmentFile || !studentFile)
+    {
+        cout << "Error saving data.\n";
+        return;
+    }
+
+    for (const Department &department : departments)
+    {
+        departmentFile << department.getName() << '\n';
+    }
+
+    for (const Student &student : students)
+    {
+        studentFile << student.getId() << '|'
+                    << student.getName() << '|'
+                    << student.getUsername() << '|'
+                    << student.getPassword() << '\n';
+    }
+
+    cout << "Data saved successfully.\n";
+}
+
+void Admin::loadData()
+{
+    ifstream departmentFile("data/departments.txt");
+    ifstream studentFile("data/students.txt");
+
+    string line;
+
+    while (getline(departmentFile, line))
+    {
+        if (!line.empty())
+        {
+            departments.emplace_back(line);
+        }
+    }
+
+    while (getline(studentFile, line))
+    {
+        stringstream stream(line);
+        string idText;
+        string name;
+        string username;
+        string password;
+
+        if (getline(stream, idText, '|') &&
+            getline(stream, name, '|') &&
+            getline(stream, username, '|') &&
+            getline(stream, password))
+        {
+            try
+            {
+                int id = stoi(idText);
+
+                students.emplace_back(
+                    id, name, username, password);
+            }
+            catch (const invalid_argument &)
+            {
+                cout << "Skipping invalid student record.\n";
+            }
+            catch (const out_of_range &)
+            {
+                cout << "Skipping invalid student ID.\n";
+            }
+        }
     }
 }

@@ -40,4 +40,7 @@ public:
 
     void addReservation();
     void displayReservations() const;
+
+    void saveData() const;
+    void loadData();
 };

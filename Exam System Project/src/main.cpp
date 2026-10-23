@@ -8,6 +8,7 @@ using namespace std;
 int main()
 {
     Admin admin;
+    admin.loadData();
     int choice;
 
     do
@@ -46,9 +47,7 @@ int main()
             admin.displayDepartments();
             break;
         case 3:
-            cout << "Before addSubject\n";
             admin.addSubject();
-            cout << "After addSubject\n";
             break;
         case 4:
             admin.displaySubjects();
@@ -81,6 +80,7 @@ int main()
             admin.displayReservations();
             break;
         case 0:
+            admin.saveData();
             cout << "Exiting the system...\n";
             break;
         default:

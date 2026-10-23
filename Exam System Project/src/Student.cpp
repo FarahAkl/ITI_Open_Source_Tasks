@@ -35,3 +35,8 @@ void Student::display() const
          << " | Name: " << name
          << " | Username: " << username << '\n';
 }
+
+string Student::getPassword() const
+{
+    return password;
+}
