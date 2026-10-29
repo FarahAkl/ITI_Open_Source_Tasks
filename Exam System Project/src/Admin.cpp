@@ -676,7 +676,7 @@ void Admin::addReservation()
     if (!(cin >> studentId))
     {
         cin.clear();
-        cin.ignore(10000, '\n');
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
         cout << "Invalid student ID.\n";
         return;
     }
@@ -705,7 +705,7 @@ void Admin::addReservation()
     if (!(cin >> examNumber))
     {
         cin.clear();
-        cin.ignore(10000, '\n');
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
         cout << "Invalid exam number.\n";
         return;
     }
@@ -730,6 +730,8 @@ void Admin::addReservation()
 
     reservations.emplace_back(reservationId, studentId, examNumber);
 
+    saveData();
+
     cout << "Reservation created successfully.\n";
 }
 
@@ -744,6 +746,55 @@ void Admin::displayReservations() const
     for (const Reservation &reservation : reservations)
     {
         reservation.display();
+    }
+}
+
+void Admin::displayResults() const
+{
+    bool foundResults = false;
+
+    for (const Reservation &reservation : reservations)
+    {
+        if (!reservation.isCompleted())
+        {
+            continue;
+        }
+
+        const Student *studentFound = nullptr;
+
+        for (const Student &student : students)
+        {
+            if (student.getId() == reservation.getStudentId())
+            {
+                studentFound = &student;
+                break;
+            }
+        }
+
+        int examNumber = reservation.getExamNumber();
+
+        if (studentFound == nullptr ||
+            examNumber < 1 ||
+            examNumber > static_cast<int>(exams.size()))
+        {
+            continue;
+        }
+
+        const Exam &exam = exams[examNumber - 1];
+
+        cout << "\n========== Exam Result ==========\n";
+        cout << "Student: " << studentFound->getName() << '\n';
+        cout << "Student ID: " << studentFound->getId() << '\n';
+        cout << "Exam: " << exam.getName() << '\n';
+        cout << "Score: " << reservation.getScore()
+             << " / " << reservation.getTotalQuestions() << '\n';
+
+        foundResults = true;
+    }
+
+    if (!foundResults)
+    {
+        cout << "No completed exam results available.\n";
     }
 }
 
@@ -854,6 +905,12 @@ void Admin::saveData() const
 
 void Admin::loadData()
 {
+    departments.clear();
+    students.clear();
+    subjects.clear();
+    exams.clear();
+    reservations.clear();
+
     ifstream departmentFile("data/departments.txt");
     ifstream studentFile("data/students.txt");
     ifstream subjectFile("data/subjects.txt");
@@ -996,6 +1053,15 @@ void Admin::loadData()
             bool completed = (completedText == "1");
             int score = stoi(scoreText);
             int totalQuestions = stoi(totalQuestionsText);
+
+            if (id <= 0 ||
+                studentId <= 0 ||
+                examNumber < 1 ||
+                examNumber > static_cast<int>(exams.size()))
+            {
+                cout << "Skipping reservation with invalid IDs.\n";
+                continue;
+            }
 
             if (score < 0 || totalQuestions < 0 ||
                 score > totalQuestions)

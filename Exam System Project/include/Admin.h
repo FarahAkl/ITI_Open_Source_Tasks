@@ -41,6 +41,8 @@ public:
     void addReservation();
     void displayReservations() const;
 
+    void displayResults() const;
+
     void saveData() const;
     void loadData();
 };

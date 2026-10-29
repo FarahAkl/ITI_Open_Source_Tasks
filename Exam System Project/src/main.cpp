@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <limits>
 #include "Admin.h"
@@ -30,6 +29,7 @@ int main()
         cout << "14. Start Quiz\n";
         cout << "15. Display Department Subjects\n";
         cout << "16. Start Exam\n";
+        cout << "17. Display Exam Results\n";
         cout << "0. Exit\n";
         cout << "Enter your choice: ";
 
@@ -90,6 +90,9 @@ int main()
             break;
         case 16:
             admin.startExam();
+            break;
+        case 17:
+            admin.displayResults();
             break;
         case 0:
             admin.saveData();
