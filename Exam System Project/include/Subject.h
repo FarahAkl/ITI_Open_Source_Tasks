@@ -20,7 +20,8 @@ public:
 
     bool hasQuestions() const;
 
-    bool startQuiz() const;
+    int startQuiz(int durationMinutes) const;
+    int getQuestionCount() const;
 
     void addQuestion(unique_ptr<Question> question);
 

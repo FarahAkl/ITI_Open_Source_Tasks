@@ -321,7 +321,7 @@ void Admin::startQuiz() const
         return;
     }
 
-    subjects[subjectIndex - 1].startQuiz();
+    subjects[subjectIndex - 1].startQuiz(60);
 }
 
 void Admin::addQuestion()
@@ -592,9 +592,13 @@ void Admin::startExam()
             cout << "Duration: "
                  << exam.getDuration() << " minutes\n\n";
 
-            if (subject.startQuiz())
+            int score = subject.startQuiz(exam.getDuration());
+            if (score >= 0)
             {
-                studentReservation->markCompleted();
+                studentReservation->markCompleted(
+                    score,
+                    subject.getQuestionCount());
+
                 saveData();
 
                 cout << "Exam completed successfully.\n";
@@ -840,7 +844,9 @@ void Admin::saveData() const
         reservationFile << reservation.getId() << '|'
                         << reservation.getStudentId() << '|'
                         << reservation.getExamNumber() << '|'
-                        << reservation.isCompleted() << '\n';
+                        << reservation.isCompleted() << '|'
+                        << reservation.getScore() << '|'
+                        << reservation.getTotalQuestions() << '\n';
     }
 
     cout << "Data saved successfully.\n";
@@ -968,14 +974,19 @@ void Admin::loadData()
         string studentIdText;
         string examNumberText;
         string completedText;
+        string scoreText = "0";
+        string totalQuestionsText = "0";
 
         if (!getline(stream, idText, '|') ||
             !getline(stream, studentIdText, '|') ||
             !getline(stream, examNumberText, '|') ||
-            !getline(stream, completedText))
+            !getline(stream, completedText, '|'))
         {
             continue;
         }
+
+        getline(stream, scoreText, '|');
+        getline(stream, totalQuestionsText);
 
         try
         {
@@ -983,9 +994,23 @@ void Admin::loadData()
             int studentId = stoi(studentIdText);
             int examNumber = stoi(examNumberText);
             bool completed = (completedText == "1");
+            int score = stoi(scoreText);
+            int totalQuestions = stoi(totalQuestionsText);
+
+            if (score < 0 || totalQuestions < 0 ||
+                score > totalQuestions)
+            {
+                cout << "Skipping reservation with invalid score.\n";
+                continue;
+            }
 
             reservations.emplace_back(
-                id, studentId, examNumber, completed);
+                id,
+                studentId,
+                examNumber,
+                completed,
+                score,
+                totalQuestions);
         }
         catch (const invalid_argument &)
         {
