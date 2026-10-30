@@ -24,6 +24,7 @@ public:
     int getSectionsCount() const;
 
     Section *getSection(int index);
+    const Section *getSection(int index) const;
 
     const vector<Section> &getSections() const;
 

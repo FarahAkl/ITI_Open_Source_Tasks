@@ -15,6 +15,9 @@ string Subject::getName() const
 
 void Subject::addSection(string name)
 {
+    for (const Section &section : sections)
+        if (section.getName() == name)
+            return;
     sections.emplace_back(name);
 }
 
@@ -36,6 +39,13 @@ Section *Subject::getSection(int index)
     }
 
     return &sections[index];
+}
+
+const Section *Subject::getSection(int index) const
+{
+    if (index < 0 || index >= static_cast<int>(sections.size()))
+        return nullptr;
+    return &sections[static_cast<size_t>(index)];
 }
 
 const vector<Section> &Subject::getSections() const

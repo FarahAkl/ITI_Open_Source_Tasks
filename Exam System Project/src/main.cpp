@@ -1,6 +1,7 @@
 #include <iostream>
 #include <limits>
 #include "Admin.h"
+#include "ExamException.h"
 
 using namespace std;
 
@@ -30,6 +31,7 @@ int main()
         cout << "15. Display Department Subjects\n";
         cout << "16. Start Exam\n";
         cout << "17. Display Exam Results\n";
+        cout << "18. Add Section to Subject\n";
         cout << "0. Exit\n";
         cout << "Enter your choice: ";
 
@@ -41,6 +43,8 @@ int main()
             continue;
         }
 
+        try
+        {
         switch (choice)
         {
         case 1:
@@ -94,12 +98,24 @@ int main()
         case 17:
             admin.displayResults();
             break;
+        case 18:
+            admin.addSection();
+            break;
         case 0:
             admin.saveData();
             cout << "Exiting the system...\n";
             break;
         default:
             cout << "Invalid choice. Try again.\n";
+        }
+        }
+        catch (const ExamException &error)
+        {
+            cout << "Exam error: " << error.what() << '\n';
+        }
+        catch (const exception &error)
+        {
+            cout << "Error: " << error.what() << '\n';
         }
 
     } while (choice != 0);

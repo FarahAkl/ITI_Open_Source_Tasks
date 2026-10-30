@@ -11,6 +11,9 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <algorithm>
+#include <random>
+#include <chrono>
 
 using namespace std;
 
@@ -27,39 +30,18 @@ void Admin::addExam()
 
     cout << "Enter exam name: ";
     getline(cin >> ws, name);
+
     if (name.empty())
     {
         cout << "Exam name cannot be empty.\n";
         return;
     }
-
-    displaySubjects();
-
-    int subjectIndex;
-    cout << "Choose subject number: ";
-
-    if (!(cin >> subjectIndex))
-    {
-        cout << "Invalid input.\n";
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        return;
-    }
-
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-
-    if (subjectIndex < 1 ||
-        subjectIndex > static_cast<int>(subjects.size()))
-    {
-        cout << "Invalid subject number.\n";
-        return;
-    }
-
-    if (!subjects[subjectIndex - 1].hasQuestions())
-    {
-        cout << "Add questions to this subject first.\n";
-        return;
-    }
+    for (const Exam &existing : exams)
+        if (existing.getName() == name)
+        {
+            cout << "An exam with that name already exists.\n";
+            return;
+        }
 
     cout << "Enter exam duration in minutes: ";
 
@@ -71,14 +53,134 @@ void Admin::addExam()
         return;
     }
 
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    Exam exam(name, duration);
 
-    exams.emplace_back(
-        name,
-        subjects[subjectIndex - 1].getName(),
-        duration);
+    while (true)
+    {
+        cout << "\nAvailable Subjects:\n";
+        displaySubjects();
 
-    cout << "Exam added successfully!\n";
+        int subjectIndex;
+
+        cout << "\nChoose subject number (0 to finish): ";
+
+        if (!(cin >> subjectIndex))
+        {
+            cout << "Invalid input.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return;
+        }
+
+        if (subjectIndex == 0)
+        {
+            break;
+        }
+
+        if (subjectIndex < 1 ||
+            subjectIndex > static_cast<int>(subjects.size()))
+        {
+            cout << "Invalid subject number.\n";
+            continue;
+        }
+
+        Subject &subject = subjects[subjectIndex - 1];
+
+        if (!subject.hasSections())
+        {
+            cout << "This subject has no sections.\n";
+            continue;
+        }
+
+        subject.displaySections();
+
+        int sectionIndex;
+
+        cout << "Choose section number: ";
+
+        if (!(cin >> sectionIndex))
+        {
+            cout << "Invalid input.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return;
+        }
+
+        Section *section = subject.getSection(sectionIndex - 1);
+
+        if (section == nullptr)
+        {
+            cout << "Invalid section number.\n";
+            continue;
+        }
+
+        if (!section->hasQuestions())
+        {
+            cout << "This section has no questions.\n";
+            continue;
+        }
+
+        cout << "Available questions: "
+             << section->getQuestionCount() << '\n';
+
+        int questionCount;
+
+        cout << "Enter number of questions: ";
+
+        if (!(cin >> questionCount) ||
+            questionCount <= 0 ||
+            questionCount > section->getQuestionCount())
+        {
+            cout << "Invalid question count.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            continue;
+        }
+
+        int marks;
+
+        cout << "Enter marks for this section: ";
+
+        if (!(cin >> marks) || marks <= 0)
+        {
+            cout << "Invalid marks.\n";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            continue;
+        }
+
+        ExamDetail detail(
+            subject.getName(),
+            section->getName(),
+            questionCount,
+            marks);
+
+        bool duplicateSection = false;
+        for (const ExamDetail &existing : exam.getDetails())
+            if (existing.getSubjectName() == detail.getSubjectName() &&
+                existing.getSectionName() == detail.getSectionName())
+                duplicateSection = true;
+        if (duplicateSection)
+        {
+            cout << "That section is already included in this exam.\n";
+            continue;
+        }
+
+        exam += detail;
+
+        cout << "Section added to exam successfully!\n";
+    }
+
+    if (exam.getDetails().empty())
+    {
+        cout << "No sections were added. Exam was not created.\n";
+        return;
+    }
+
+    exams.push_back(exam);
+
+    cout << "\nExam created successfully!\n";
+    exam.display();
 }
 
 void Admin::displayExams() const
@@ -258,6 +360,52 @@ void Admin::displaySubjects() const
     }
 }
 
+void Admin::addSection()
+{
+    if (subjects.empty())
+    {
+        cout << "Add a subject first.\n";
+        return;
+    }
+
+    displaySubjects();
+    int subjectIndex;
+    cout << "Choose subject number: ";
+    if (!(cin >> subjectIndex))
+    {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Invalid subject number.\n";
+        return;
+    }
+    if (subjectIndex < 1 || subjectIndex > static_cast<int>(subjects.size()))
+    {
+        cout << "Invalid subject number.\n";
+        return;
+    }
+
+    string name;
+    cout << "Enter section name: ";
+    getline(cin >> ws, name);
+    if (name.empty() || name.find('|') != string::npos)
+    {
+        cout << "Section name cannot be empty or contain '|'.\n";
+        return;
+    }
+    Subject &subject = subjects[static_cast<size_t>(subjectIndex - 1)];
+    for (const Section &section : subject.getSections())
+    {
+        if (section.getName() == name)
+        {
+            cout << "Section already exists in this subject.\n";
+            return;
+        }
+    }
+    subject.addSection(name);
+    saveData();
+    cout << "Section added successfully.\n";
+}
+
 void Admin::displayQuestions() const
 {
     if (subjects.empty())
@@ -279,8 +427,6 @@ void Admin::displayQuestions() const
         return;
     }
 
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-
     if (subjectIndex < 1 ||
         subjectIndex > static_cast<int>(subjects.size()))
     {
@@ -288,7 +434,36 @@ void Admin::displayQuestions() const
         return;
     }
 
-    subjects[subjectIndex - 1].displayQuestions();
+    const Subject &subject = subjects[subjectIndex - 1];
+
+    if (!subject.hasSections())
+    {
+        cout << "This subject has no sections.\n";
+        return;
+    }
+
+    subject.displaySections();
+
+    int sectionIndex;
+    cout << "Choose section number: ";
+
+    if (!(cin >> sectionIndex))
+    {
+        cout << "Invalid input.\n";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return;
+    }
+
+    const Section *section = subject.getSection(sectionIndex - 1);
+
+    if (section == nullptr)
+    {
+        cout << "Invalid section number.\n";
+        return;
+    }
+
+    section->displayQuestions();
 }
 
 void Admin::startQuiz() const
@@ -321,7 +496,30 @@ void Admin::startQuiz() const
         return;
     }
 
-    subjects[subjectIndex - 1].startQuiz(60);
+    const Subject &subject = subjects[static_cast<size_t>(subjectIndex - 1)];
+    vector<const Question *> questions;
+    for (const Section &section : subject.getSections())
+        for (const auto &question : section.getQuestions())
+            questions.push_back(question.get());
+    if (questions.empty())
+    {
+        cout << "This subject has no questions.\n";
+        return;
+    }
+    int score = 0;
+    for (size_t i = 0; i < questions.size(); ++i)
+    {
+        cout << "\nQuestion " << i + 1 << " of " << questions.size() << ":\n";
+        questions[i]->display();
+        cout << "Answer (A-D; multiple answers separated by spaces): ";
+        string answerLine;
+        getline(cin >> ws, answerLine);
+        vector<char> answers;
+        for (unsigned char ch : answerLine)
+            if (isalpha(ch)) answers.push_back(static_cast<char>(toupper(ch)));
+        if (questions[i]->checkAnswer(answers)) ++score;
+    }
+    cout << "Quiz score: " << score << " / " << questions.size() << '\n';
 }
 
 void Admin::addQuestion()
@@ -355,6 +553,37 @@ void Admin::addQuestion()
         subjectIndex > static_cast<int>(subjects.size()))
     {
         cout << "Invalid subject number.\n";
+        return;
+    }
+
+    Subject &subject = subjects[subjectIndex - 1];
+
+    if (!subject.hasSections())
+    {
+        cout << "This subject has no sections. Add a section first.\n";
+        return;
+    }
+
+    subject.displaySections();
+
+    int sectionIndex;
+    cout << "Choose section number: ";
+
+    if (!(cin >> sectionIndex))
+    {
+        cout << "Invalid input.\n";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return;
+    }
+
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    Section *section = subject.getSection(sectionIndex - 1);
+
+    if (section == nullptr)
+    {
+        cout << "Invalid section number.\n";
         return;
     }
 
@@ -413,16 +642,18 @@ void Admin::addQuestion()
             return;
         }
 
-        answer = static_cast<char>(toupper(answer));
+        answer = static_cast<char>(
+            toupper(static_cast<unsigned char>(answer)));
+
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
         if (answer < 'A' || answer > 'D')
         {
-            cout << "Invalid answer. Choose A, B, C, or D.\n";
+            cout << "Invalid answer.\n";
             return;
         }
 
-        subjects[subjectIndex - 1].addQuestion(
+        section->addQuestion(
             make_unique<SingleChoiceQuestion>(
                 question, choices, answer));
     }
@@ -433,7 +664,7 @@ void Admin::addQuestion()
 
         cout << "How many correct answers? ";
 
-        if (!(cin >> count) || count < 1 || count > 4)
+        if (!(cin >> count) || count < 2 || count > 4)
         {
             cout << "Invalid number of answers.\n";
             cin.clear();
@@ -455,11 +686,12 @@ void Admin::addQuestion()
                 return;
             }
 
-            answer = static_cast<char>(toupper(answer));
+            answer = static_cast<char>(
+                toupper(static_cast<unsigned char>(answer)));
 
             if (answer < 'A' || answer > 'D')
             {
-                cout << "Invalid answer. Choose A, B, C, or D.\n";
+                cout << "Invalid answer.\n";
                 cin.ignore(numeric_limits<streamsize>::max(), '\n');
                 return;
             }
@@ -468,7 +700,7 @@ void Admin::addQuestion()
             {
                 if (previous == answer)
                 {
-                    cout << "You cannot enter the same answer twice.\n";
+                    cout << "Duplicate answer.\n";
                     cin.ignore(numeric_limits<streamsize>::max(), '\n');
                     return;
                 }
@@ -479,7 +711,7 @@ void Admin::addQuestion()
 
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-        subjects[subjectIndex - 1].addQuestion(
+        section->addQuestion(
             make_unique<MultipleChoiceQuestion>(
                 question, choices, answers));
     }
@@ -501,37 +733,24 @@ void Admin::startExam()
         return;
     }
 
-    displayStudents();
-
-    int studentId;
-    cout << "Enter student ID: ";
-
-    if (!(cin >> studentId))
-    {
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        cout << "Invalid student ID.\n";
-        return;
-    }
-
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-
-    bool studentExists = false;
-
+    string username, password;
+    cout << "Student username: ";
+    getline(cin >> ws, username);
+    cout << "Password: ";
+    getline(cin, password);
+    const Student *authenticatedStudent = nullptr;
     for (const Student &student : students)
-    {
-        if (student.getId() == studentId)
+        if (student.checkLogin(username, password))
         {
-            studentExists = true;
+            authenticatedStudent = &student;
             break;
         }
-    }
-
-    if (!studentExists)
+    if (!authenticatedStudent)
     {
-        cout << "Student not found.\n";
+        cout << "Login failed. Check the username and password.\n";
         return;
     }
+    const int studentId = authenticatedStudent->getId();
 
     displayExams();
 
@@ -579,36 +798,139 @@ void Admin::startExam()
         return;
     }
 
-    const Exam &exam = exams[examNumber - 1];
-    const string subjectName = exam.getSubjectName();
-
-    for (const Subject &subject : subjects)
+    const Exam &exam = exams[static_cast<size_t>(examNumber - 1)];
+    struct ExamQuestion { const Question *question; int detailIndex; int questionIndex; };
+    vector<ExamQuestion> selected;
+    mt19937 randomEngine(random_device{}());
+    const auto makeQuestion = [&](int detailIndex, int questionIndex) -> ExamQuestion {
+        const ExamDetail &detail = exam.getDetails()[static_cast<size_t>(detailIndex)];
+        for (const Subject &subject : subjects)
+            if (subject.getName() == detail.getSubjectName())
+                for (int sectionIndex = 0; sectionIndex < subject.getSectionsCount(); ++sectionIndex)
+                {
+                    const Section *section = subject.getSection(sectionIndex);
+                    if (section->getName() == detail.getSectionName())
+                        return {section->getQuestion(questionIndex), detailIndex, questionIndex};
+                }
+        return {nullptr, detailIndex, questionIndex};
+    };
+    if (studentReservation->isInProgress() && !studentReservation->getRunningQuestions().empty())
     {
-        if (subject.getName() == subjectName)
+        for (const auto &key : studentReservation->getRunningQuestions())
         {
-            cout << "\nStarting exam: "
-                 << exam.getName() << '\n';
-
-            cout << "Duration: "
-                 << exam.getDuration() << " minutes\n\n";
-
-            int score = subject.startQuiz(exam.getDuration());
-            if (score >= 0)
-            {
-                studentReservation->markCompleted(
-                    score,
-                    subject.getQuestionCount());
-
-                saveData();
-
-                cout << "Exam completed successfully.\n";
-            }
-
-            return;
+            ExamQuestion item = makeQuestion(key.first, key.second);
+            if (!item.question) { selected.clear(); break; }
+            selected.push_back(item);
         }
     }
+    vector<pair<int, int>> questionKeys;
+    if (selected.empty()) for (size_t detailIndex = 0; detailIndex < exam.getDetails().size(); ++detailIndex)
+    {
+        const ExamDetail &detail = exam.getDetails()[detailIndex];
+        const Subject *subject = nullptr;
+        for (const Subject &candidate : subjects)
+            if (candidate.getName() == detail.getSubjectName()) { subject = &candidate; break; }
+        const Section *section = nullptr;
+        if (subject)
+            for (int i = 0; i < subject->getSectionsCount(); ++i)
+                if (subject->getSection(i)->getName() == detail.getSectionName()) { section = subject->getSection(i); break; }
+        if (!section || section->getQuestionCount() < detail.getQuestionCount())
+        {
+            cout << "The exam cannot start: a section has too few questions.\n";
+            return;
+        }
+        vector<int> indices(static_cast<size_t>(section->getQuestionCount()));
+        for (size_t i = 0; i < indices.size(); ++i) indices[i] = static_cast<int>(i);
+        shuffle(indices.begin(), indices.end(), randomEngine);
+        for (int i = 0; i < detail.getQuestionCount(); ++i)
+            selected.push_back({section->getQuestion(indices[static_cast<size_t>(i)]), static_cast<int>(detailIndex), indices[static_cast<size_t>(i)]});
+    }
+    if (selected.empty()) { cout << "The exam has no questions.\n"; return; }
+    for (const ExamQuestion &item : selected) questionKeys.push_back({item.detailIndex, item.questionIndex});
 
-    cout << "Subject not found.\n";
+    cout << (studentReservation->isInProgress() ? "\nResuming exam: " : "\nStarting exam: ")
+         << exam.getName() << " (" << exam.getDuration() << " minutes)\n";
+    if (!studentReservation->isInProgress())
+        studentReservation->setAttempt(questionKeys, 0, exam.getDuration() * 60);
+    vector<vector<char>> responses = studentReservation->getSelectedAnswers();
+    responses.resize(selected.size());
+    size_t current = static_cast<size_t>(max(0, min(studentReservation->getCurrentQuestion(), static_cast<int>(selected.size() - 1))));
+    int remainingSeconds = studentReservation->getRemainingSeconds() > 0 ? studentReservation->getRemainingSeconds() : exam.getDuration() * 60;
+    auto lastSavedAt = chrono::steady_clock::now();
+    while (current < selected.size())
+    {
+        cout << "\nQuestion " << current + 1 << " of " << selected.size() << "\n";
+        selected[current].question->display();
+        if (!responses[current].empty())
+        {
+            cout << "Saved answer: ";
+            for (char a : responses[current]) cout << a << ' ';
+            cout << '\n';
+        }
+        cout << "Enter answer(s), N next, P previous, S submit: ";
+        string input;
+        getline(cin >> ws, input);
+        const auto now = chrono::steady_clock::now();
+        const int elapsed = static_cast<int>(chrono::duration_cast<chrono::seconds>(now - lastSavedAt).count());
+        remainingSeconds = max(0, remainingSeconds - elapsed);
+        lastSavedAt = now;
+        if (remainingSeconds == 0) { cout << "Time expired. Submitting exam.\n"; break; }
+        if (input == "Q" || input == "q")
+        {
+            studentReservation->setAttempt(questionKeys, static_cast<int>(current), remainingSeconds);
+            for (size_t i = 0; i < responses.size(); ++i) studentReservation->setSelectedAnswer(i, responses[i]);
+            saveData();
+            cout << "Attempt saved. Choose Start Exam again to resume.\n";
+            return;
+        }
+        if (input == "N" || input == "n") { if (current + 1 < selected.size()) ++current; else cout << "Already at the last question.\n"; }
+        else if (input == "P" || input == "p") { if (current > 0) --current; else cout << "Already at the first question.\n"; }
+        else if (input == "S" || input == "s") break;
+        else
+        {
+        vector<char> answers;
+        for (unsigned char ch : input)
+            if (isalpha(ch)) answers.push_back(static_cast<char>(toupper(ch)));
+        bool valid = !answers.empty();
+        for (char a : answers) if (a < 'A' || a > 'D') valid = false;
+        if (!valid || (dynamic_cast<const SingleChoiceQuestion *>(selected[current].question) && answers.size() != 1))
+        {
+            cout << "Invalid answer selection. Try again.\n";
+            continue;
+        }
+        responses[current] = answers;
+        if (current + 1 < selected.size()) ++current;
+        }
+        studentReservation->setAttempt(questionKeys, static_cast<int>(current), remainingSeconds);
+        for (size_t i = 0; i < responses.size(); ++i) studentReservation->setSelectedAnswer(i, responses[i]);
+        saveData();
+    }
+
+    int earned = 0;
+    int totalMarks = 0;
+    for (size_t d = 0; d < exam.getDetails().size(); ++d)
+    {
+        const ExamDetail &detail = exam.getDetails()[d];
+        int sectionCorrect = 0;
+        int sectionCount = 0;
+        for (size_t i = 0; i < selected.size(); ++i)
+            if (selected[i].detailIndex == static_cast<int>(d))
+            {
+                ++sectionCount;
+                if (selected[i].question->checkAnswer(responses[i])) ++sectionCorrect;
+            }
+        int sectionScore = sectionCount ? detail.getMarks() * sectionCorrect / sectionCount : 0;
+        earned += sectionScore;
+        totalMarks += detail.getMarks();
+        cout << detail.getSubjectName() << " / " << detail.getSectionName() << ": "
+             << sectionScore << " / " << detail.getMarks() << '\n';
+    }
+    const double percent = totalMarks ? 100.0 * earned / totalMarks : 0.0;
+    cout << "Final score: " << earned << " / " << totalMarks << " (" << percent << "%)\n";
+    cout << (percent >= 60.0 ? "Result: PASS\n" : "Result: FAIL\n");
+    studentReservation->markCompleted(earned, totalMarks);
+    saveData();
+    cout << "Exam submitted and result saved.\n";
 }
 
 void Admin::addStudent()
@@ -787,7 +1109,37 @@ void Admin::displayResults() const
         cout << "Student ID: " << studentFound->getId() << '\n';
         cout << "Exam: " << exam.getName() << '\n';
         cout << "Score: " << reservation.getScore()
-             << " / " << reservation.getTotalQuestions() << '\n';
+             << " / " << reservation.getTotalQuestions() << " marks\n";
+        const double percentage = reservation.getTotalQuestions() > 0
+            ? 100.0 * reservation.getScore() / reservation.getTotalQuestions() : 0.0;
+        cout << "Percentage: " << percentage << "%\n";
+        cout << "Result: " << (percentage >= 60.0 ? "PASS" : "FAIL") << '\n';
+        cout << "Section performance:\n";
+        const auto &running = reservation.getRunningQuestions();
+        const auto &answers = reservation.getSelectedAnswers();
+        for (size_t detailIndex = 0; detailIndex < exam.getDetails().size(); ++detailIndex)
+        {
+            const ExamDetail &detail = exam.getDetails()[detailIndex];
+            const Subject *subject = nullptr;
+            for (const Subject &candidate : subjects)
+                if (candidate.getName() == detail.getSubjectName()) { subject = &candidate; break; }
+            const Section *section = nullptr;
+            if (subject)
+                for (int sectionIndex = 0; sectionIndex < subject->getSectionsCount(); ++sectionIndex)
+                    if (subject->getSection(sectionIndex)->getName() == detail.getSectionName())
+                    { section = subject->getSection(sectionIndex); break; }
+            int count = 0, correct = 0;
+            for (size_t position = 0; position < running.size() && position < answers.size(); ++position)
+                if (running[position].first == static_cast<int>(detailIndex) && section)
+                {
+                    ++count;
+                    const Question *question = section->getQuestion(running[position].second);
+                    if (question && question->checkAnswer(answers[position])) ++correct;
+                }
+            const int sectionScore = count ? detail.getMarks() * correct / count : 0;
+            cout << "- " << detail.getSubjectName() << " / " << detail.getSectionName()
+                 << ": " << sectionScore << " / " << detail.getMarks() << " marks\n";
+        }
 
         foundResults = true;
     }
@@ -807,8 +1159,11 @@ void Admin::saveData() const
     ofstream examFile("data/exams.txt");
     ofstream reservationFile("data/reservations.txt");
     ofstream departmentSubjectFile("data/department_subjects.txt");
+    ofstream sectionFile("data/sections.txt");
+    ofstream runningFile("data/exam_running.txt");
+    ofstream runningAnswersFile("data/exam_running_ans.txt");
 
-    if (!departmentFile || !studentFile || !subjectFile || !questionFile || !examFile || !reservationFile || !departmentSubjectFile)
+    if (!departmentFile || !studentFile || !subjectFile || !questionFile || !examFile || !reservationFile || !departmentSubjectFile || !sectionFile || !runningFile || !runningAnswersFile)
     {
         cout << "Error saving data. Check the data folder.\n";
         return;
@@ -839,46 +1194,33 @@ void Admin::saveData() const
     for (const Subject &subject : subjects)
     {
         subjectFile << subject.getName() << '\n';
-
-        for (const auto &question : subject.getQuestions())
+        for (const Section &section : subject.getSections())
         {
-            questionFile << subject.getName() << '|';
-
-            if (const auto *single =
-                    dynamic_cast<const SingleChoiceQuestion *>(question.get()))
+            sectionFile << subject.getName() << '|' << section.getName() << '\n';
+            for (const auto &question : section.getQuestions())
             {
-                questionFile << 'S' << '|';
-                questionFile << single->getText() << '|';
+                questionFile << subject.getName() << '|' << section.getName() << '|';
 
-                for (int i = 0; i < 4; i++)
+                if (const auto *single = dynamic_cast<const SingleChoiceQuestion *>(question.get()))
                 {
-                    questionFile << single->getOption(i) << '|';
+                    questionFile << 'S' << '|' << single->getText() << '|';
+
+                    for (int i = 0; i < 4; i++)
+                        questionFile << single->getOption(i) << '|';
+                    questionFile << single->getCorrectAnswer() << '\n';
                 }
-
-                questionFile << single->getCorrectAnswer() << '\n';
-            }
-            else if (const auto *multiple =
-                         dynamic_cast<const MultipleChoiceQuestion *>(question.get()))
-            {
-                questionFile << 'M' << '|';
-                questionFile << multiple->getText() << '|';
-
-                for (int i = 0; i < 4; i++)
+                else if (const auto *multiple = dynamic_cast<const MultipleChoiceQuestion *>(question.get()))
                 {
-                    questionFile << multiple->getOption(i) << '|';
+                    questionFile << 'M' << '|' << multiple->getText() << '|';
+                    for (int i = 0; i < 4; i++) questionFile << multiple->getOption(i) << '|';
+                    vector<char> answers = multiple->getCorrectAnswers();
+                    for (size_t i = 0; i < answers.size(); i++)
+                    {
+                        if (i > 0) questionFile << ',';
+                        questionFile << answers[i];
+                    }
+                    questionFile << '\n';
                 }
-
-                vector<char> answers = multiple->getCorrectAnswers();
-
-                for (size_t i = 0; i < answers.size(); i++)
-                {
-                    if (i > 0)
-                        questionFile << ',';
-
-                    questionFile << answers[i];
-                }
-
-                questionFile << '\n';
             }
         }
     }
@@ -886,10 +1228,17 @@ void Admin::saveData() const
     for (const Exam &exam : exams)
     {
         examFile << exam.getName() << '|'
-                 << exam.getSubjectName() << '|'
-                 << exam.getDuration() << '\n';
-    }
+                 << exam.getDuration() << '|'
+                 << exam.getDetails().size() << '\n';
 
+        for (const ExamDetail &detail : exam.getDetails())
+        {
+            examFile << detail.getSubjectName() << '|'
+                     << detail.getSectionName() << '|'
+                     << detail.getQuestionCount() << '|'
+                     << detail.getMarks() << '\n';
+        }
+    }
     for (const Reservation &reservation : reservations)
     {
         reservationFile << reservation.getId() << '|'
@@ -897,7 +1246,24 @@ void Admin::saveData() const
                         << reservation.getExamNumber() << '|'
                         << reservation.isCompleted() << '|'
                         << reservation.getScore() << '|'
-                        << reservation.getTotalQuestions() << '\n';
+                        << reservation.getTotalQuestions() << '|'
+                        << reservation.isInProgress() << '|'
+                        << reservation.getCurrentQuestion() << '|'
+                        << reservation.getRemainingSeconds() << '\n';
+        for (size_t position = 0; position < reservation.getRunningQuestions().size(); ++position)
+        {
+            runningFile << reservation.getId() << '|' << position << '|'
+                        << reservation.getRunningQuestions()[position].first << '|'
+                        << reservation.getRunningQuestions()[position].second << '\n';
+            runningAnswersFile << reservation.getId() << '|' << position << '|';
+            const auto &answers = reservation.getSelectedAnswers()[position];
+            for (size_t i = 0; i < answers.size(); ++i)
+            {
+                if (i) runningAnswersFile << ',';
+                runningAnswersFile << answers[i];
+            }
+            runningAnswersFile << '\n';
+        }
     }
 
     cout << "Data saved successfully.\n";
@@ -918,6 +1284,9 @@ void Admin::loadData()
     ifstream examFile("data/exams.txt");
     ifstream reservationFile("data/reservations.txt");
     ifstream departmentSubjectFile("data/department_subjects.txt");
+    ifstream sectionFile("data/sections.txt");
+    ifstream runningFile("data/exam_running.txt");
+    ifstream runningAnswersFile("data/exam_running_ans.txt");
 
     string examLine;
     string line;
@@ -963,6 +1332,17 @@ void Admin::loadData()
             subjects.emplace_back(line);
     }
 
+    while (getline(sectionFile, line))
+    {
+        stringstream stream(line);
+        string subjectName, sectionName;
+        if (!getline(stream, subjectName, '|') || !getline(stream, sectionName) || sectionName.empty())
+            continue;
+        for (Subject &subject : subjects)
+            if (subject.getName() == subjectName)
+                subject.addSection(sectionName);
+    }
+
     while (getline(departmentSubjectFile, line))
     {
         if (line.empty())
@@ -997,19 +1377,86 @@ void Admin::loadData()
         }
 
         stringstream ss(examLine);
+
         string examName;
-        string subjectName;
         string durationText;
+        string detailsCountText;
 
         getline(ss, examName, '|');
-        getline(ss, subjectName, '|');
         getline(ss, durationText, '|');
+        getline(ss, detailsCountText);
 
         try
         {
-            int duration = stoi(durationText);
+            int duration = 0;
+            int detailsCount = 0;
+            bool legacyExam = false;
+            try
+            {
+                duration = stoi(durationText);
+                detailsCount = stoi(detailsCountText);
+            }
+            catch (const exception &)
+            {
+                legacyExam = true;
+                duration = stoi(detailsCountText);
+                detailsCount = 1;
+            }
 
-            exams.emplace_back(examName, subjectName, duration);
+            Exam exam(examName, duration);
+            if (legacyExam)
+            {
+                const string &subjectName = durationText;
+                for (Subject &subject : subjects)
+                    if (subject.getName() == subjectName)
+                    {
+                        if (!subject.hasSections()) subject.addSection("General");
+                        const Section *section = subject.getSection(0);
+                        if (section)
+                            exam += ExamDetail(subjectName, section->getName(), 1, 100);
+                        break;
+                    }
+                if (exam.getDetails().empty())
+                {
+                    cout << "Skipping legacy exam without a valid subject.\n";
+                    continue;
+                }
+                exams.push_back(exam);
+                continue;
+            }
+
+            for (int i = 0; i < detailsCount; i++)
+            {
+                if (!getline(examFile, line))
+                {
+                    break;
+                }
+
+                stringstream detailStream(line);
+
+                string subjectName;
+                string sectionName;
+                string questionCountText;
+                string marksText;
+
+                getline(detailStream, subjectName, '|');
+                getline(detailStream, sectionName, '|');
+                getline(detailStream, questionCountText, '|');
+                getline(detailStream, marksText);
+
+                int questionCount = stoi(questionCountText);
+                int marks = stoi(marksText);
+
+                ExamDetail detail(
+                    subjectName,
+                    sectionName,
+                    questionCount,
+                    marks);
+
+                exam += detail;
+            }
+
+            exams.push_back(exam);
         }
         catch (const invalid_argument &)
         {
@@ -1017,7 +1464,7 @@ void Admin::loadData()
         }
         catch (const out_of_range &)
         {
-            cout << "Exam duration is out of range.\n";
+            cout << "Exam data is out of range.\n";
         }
     }
 
@@ -1033,6 +1480,7 @@ void Admin::loadData()
         string completedText;
         string scoreText = "0";
         string totalQuestionsText = "0";
+        string inProgressText = "0", currentQuestionText = "0", remainingSecondsText = "0";
 
         if (!getline(stream, idText, '|') ||
             !getline(stream, studentIdText, '|') ||
@@ -1043,7 +1491,10 @@ void Admin::loadData()
         }
 
         getline(stream, scoreText, '|');
-        getline(stream, totalQuestionsText);
+        getline(stream, totalQuestionsText, '|');
+        getline(stream, inProgressText, '|');
+        getline(stream, currentQuestionText, '|');
+        getline(stream, remainingSecondsText);
 
         try
         {
@@ -1053,6 +1504,9 @@ void Admin::loadData()
             bool completed = (completedText == "1");
             int score = stoi(scoreText);
             int totalQuestions = stoi(totalQuestionsText);
+            bool inProgress = (inProgressText == "1");
+            int currentQuestion = stoi(currentQuestionText);
+            int remainingSeconds = stoi(remainingSecondsText);
 
             if (id <= 0 ||
                 studentId <= 0 ||
@@ -1076,7 +1530,10 @@ void Admin::loadData()
                 examNumber,
                 completed,
                 score,
-                totalQuestions);
+                totalQuestions,
+                inProgress,
+                currentQuestion,
+                remainingSeconds);
         }
         catch (const invalid_argument &)
         {
@@ -1088,21 +1545,74 @@ void Admin::loadData()
         }
     }
 
+    while (getline(runningFile, line))
+    {
+        stringstream stream(line);
+        string idText, positionText, detailText, questionText;
+        if (!getline(stream, idText, '|') || !getline(stream, positionText, '|') ||
+            !getline(stream, detailText, '|') || !getline(stream, questionText)) continue;
+        try
+        {
+            int id = stoi(idText), position = stoi(positionText);
+            int detailIndex = stoi(detailText), questionIndex = stoi(questionText);
+            for (Reservation &reservation : reservations)
+                if (reservation.getId() == id && position >= 0 && position < 10000)
+                {
+                    auto keys = reservation.getRunningQuestions();
+                    if (keys.size() <= static_cast<size_t>(position)) keys.resize(static_cast<size_t>(position + 1), {-1, -1});
+                    keys[static_cast<size_t>(position)] = {detailIndex, questionIndex};
+                    reservation.setAttempt(keys, reservation.getCurrentQuestion(), reservation.getRemainingSeconds());
+                    break;
+                }
+        }
+        catch (const exception &) { cout << "Skipping invalid running-question record.\n"; }
+    }
+    while (getline(runningAnswersFile, line))
+    {
+        stringstream stream(line);
+        string idText, positionText, answersText;
+        if (!getline(stream, idText, '|') || !getline(stream, positionText, '|') || !getline(stream, answersText)) continue;
+        try
+        {
+            int id = stoi(idText), position = stoi(positionText);
+            vector<char> answers;
+            stringstream answerStream(answersText);
+            string answer;
+            while (getline(answerStream, answer, ','))
+                if (answer.size() == 1) answers.push_back(static_cast<char>(toupper(static_cast<unsigned char>(answer[0]))));
+            for (Reservation &reservation : reservations)
+                if (reservation.getId() == id && position >= 0)
+                    reservation.setSelectedAnswer(static_cast<size_t>(position), answers);
+        }
+        catch (const exception &) { cout << "Skipping invalid running-answer record.\n"; }
+    }
+
     while (getline(questionFile, line))
     {
         stringstream stream(line);
         string subjectName;
+        string field2;
         string type;
+        string sectionName;
         string questionText;
         string choices[4];
         string answersText;
 
-        if (!getline(stream, subjectName, '|') ||
-            !getline(stream, type, '|') ||
-            !getline(stream, questionText, '|'))
+        if (!getline(stream, subjectName, '|') || !getline(stream, field2, '|'))
         {
             continue;
         }
+
+        if (field2 == "S" || field2 == "M")
+        {
+            type = field2;
+            sectionName = "General";
+        }
+        else if (!getline(stream, type, '|') || !getline(stream, questionText, '|'))
+            continue;
+
+        if (questionText.empty() && (field2 == "S" || field2 == "M") && !getline(stream, questionText, '|'))
+            continue;
 
         bool validRecord = true;
 
@@ -1123,6 +1633,21 @@ void Admin::loadData()
             if (subject.getName() != subjectName)
                 continue;
 
+            if (field2 == "S" || field2 == "M")
+                subject.addSection("General");
+            Section *targetSection = nullptr;
+            for (int sectionIndex = 0; sectionIndex < subject.getSectionsCount(); ++sectionIndex)
+            {
+                Section *candidate = subject.getSection(sectionIndex);
+                if (candidate && candidate->getName() == sectionName)
+                {
+                    targetSection = candidate;
+                    break;
+                }
+            }
+            if (!targetSection)
+                continue;
+
             if (type == "S" && answersText.size() == 1)
             {
                 char answer = static_cast<char>(
@@ -1130,7 +1655,7 @@ void Admin::loadData()
 
                 if (answer >= 'A' && answer <= 'D')
                 {
-                    subject.addQuestion(
+                    targetSection->addQuestion(
                         make_unique<SingleChoiceQuestion>(
                             questionText, choices, answer));
                 }
@@ -1164,7 +1689,7 @@ void Admin::loadData()
 
                 if (validAnswers && !answers.empty())
                 {
-                    subject.addQuestion(
+                    targetSection->addQuestion(
                         make_unique<MultipleChoiceQuestion>(
                             questionText, choices, answers));
                 }

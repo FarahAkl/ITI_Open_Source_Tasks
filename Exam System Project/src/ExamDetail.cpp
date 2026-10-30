@@ -1,5 +1,7 @@
 #include "ExamDetail.h"
+#include "ExamException.h"
 #include <iostream>
+#include <stdexcept>
 
 ExamDetail::ExamDetail(string subject, string section, int count, int marks)
     : subjectName(subject),
@@ -7,6 +9,8 @@ ExamDetail::ExamDetail(string subject, string section, int count, int marks)
       questionCount(count),
       marks(marks)
 {
+    if (subjectName.empty() || sectionName.empty() || questionCount <= 0 || marks <= 0)
+        throw ExamException("An exam section requires names, questions, and positive marks.");
 }
 
 string ExamDetail::getSubjectName() const

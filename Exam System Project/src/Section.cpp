@@ -47,3 +47,10 @@ const vector<unique_ptr<Question>> &Section::getQuestions() const
 {
     return questions;
 }
+
+const Question *Section::getQuestion(int index) const
+{
+    if (index < 0 || index >= static_cast<int>(questions.size()))
+        return nullptr;
+    return questions[static_cast<size_t>(index)].get();
+}

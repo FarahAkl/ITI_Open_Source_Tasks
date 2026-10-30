@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <iosfwd>
 #include "ExamDetail.h"
 
 using namespace std;
@@ -29,4 +30,5 @@ public:
     void display() const;
 
     Exam &operator+=(const ExamDetail &detail);
+    friend ostream &operator<<(ostream &output, const Exam &exam);
 };

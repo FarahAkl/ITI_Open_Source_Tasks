@@ -29,6 +29,7 @@ public:
 
     void addSubject();
     void displaySubjects() const;
+    void addSection();
 
     void displayQuestions() const;
     void startQuiz() const;

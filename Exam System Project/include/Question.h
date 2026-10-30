@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cstddef>
 
 using namespace std;
 
@@ -16,6 +17,8 @@ public:
     Question(string text, string choices[]);
     string getText() const;
     string getOption(int index) const;
+    string operator[](size_t index) const;
+    bool operator==(const Question &other) const;
 
     void display() const;
 

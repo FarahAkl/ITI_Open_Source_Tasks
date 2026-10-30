@@ -1,11 +1,15 @@
 
 #include "Exam.h"
+#include "ExamException.h"
 #include <iostream>
+#include <stdexcept>
 
 Exam::Exam(string name, int duration)
     : examName(name),
       durationMinutes(duration)
 {
+    if (examName.empty() || durationMinutes <= 0)
+        throw ExamException("Exam name and a positive duration are required.");
 }
 
 string Exam::getName() const
@@ -20,6 +24,10 @@ int Exam::getDuration() const
 
 void Exam::addDetail(const ExamDetail &detail)
 {
+    for (const ExamDetail &existing : details)
+        if (existing.getSubjectName() == detail.getSubjectName() &&
+            existing.getSectionName() == detail.getSectionName())
+            throw ExamException("An exam cannot contain the same section twice.");
     details.push_back(detail);
 }
 
@@ -72,4 +80,17 @@ Exam &Exam::operator+=(const ExamDetail &detail)
 {
     addDetail(detail);
     return *this;
+}
+
+ostream &operator<<(ostream &output, const Exam &exam)
+{
+    output << "Exam: " << exam.examName << '\n'
+           << "Duration: " << exam.durationMinutes << " minutes\n"
+           << "Total Questions: " << exam.getTotalQuestions() << '\n'
+           << "Total Marks: " << exam.getTotalMarks() << '\n';
+    for (const ExamDetail &detail : exam.details)
+        output << detail.getSubjectName() << " / " << detail.getSectionName()
+               << ": " << detail.getQuestionCount() << " questions, "
+               << detail.getMarks() << " marks\n";
+    return output;
 }
