@@ -2,8 +2,7 @@
 
 #include <string>
 #include <vector>
-#include <memory>
-#include "Question.h"
+#include "Section.h"
 
 using namespace std;
 
@@ -11,23 +10,22 @@ class Subject
 {
 private:
     string subjectName;
-    vector<unique_ptr<Question>> questions;
+    vector<Section> sections;
 
 public:
     Subject(string name);
 
     string getName() const;
 
-    bool hasQuestions() const;
+    void addSection(string name);
 
-    int startQuiz(int durationMinutes) const;
-    int getQuestionCount() const;
+    bool hasSections() const;
 
-    void addQuestion(unique_ptr<Question> question);
+    int getSectionsCount() const;
 
-    void displayQuestions() const;
+    Section *getSection(int index);
 
-    int getQuestionsCount() const;
+    const vector<Section> &getSections() const;
 
-    const vector<unique_ptr<Question>> &getQuestions() const;
+    void displaySections() const;
 };
