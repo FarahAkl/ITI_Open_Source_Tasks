@@ -1,0 +1,73 @@
+<html>
+  <head>
+    <title>Document</title>
+  </head>
+  <body>
+    <h1>Example of Font Tag in HTML</h1>
+    <p>General text without any Font tag attribute value</p>
+    <p>
+      <font color="orange">
+        Text having normal font size and font face. Only changing font color.
+      </font>
+    </p>
+    <p>
+      <font face="Arial">Text with a different font face.</font>
+    </p>
+    <p>
+      <font size="5">
+        Text with a Increased font size having default font type.
+      </font>
+    </p>
+
+    <hr />
+
+    <h2>A simple C program:</h2>
+
+    <pre>
+      <code>
+        #include &lt;stdio.h&gt;
+        #include &lt;conio.h&gt;
+
+        int exp(int base, int power) {
+          if(power == 0) {
+            return 1;
+          } else {
+            return power--;
+            return base * exp(base, power);
+          }
+        }
+
+        int main(){
+            int x=2,y=3;
+            clrscr();
+            printf("\n %d ^ %d = %d",x,y,exp(x,y));
+            getch();
+            return 0;
+        }
+      </code>
+    </pre>
+    <p>Using the pre element</p>
+
+    <hr />
+
+    <div border="1">
+      <ol>
+        <li>Fruits</li>
+        <ol>
+          <li>Mango</li>
+          <li>Orange</li>
+        </ol>
+        <li>Vegetables</li>
+        <ol>
+          <li>Cabbage</li>
+          <li>Capsicum</li>
+          <ol>
+            <li>Green Capsicum</li>
+            <li>Yellow Capsicum</li>
+            <li>Red Capsicum</li>
+          </ol>
+        </ol>
+      </ol>
+    </div>
+  </body>
+</html>

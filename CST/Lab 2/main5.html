@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Document</title>
+  </head>
+  <body>
+    <h1>Registration</h1>
+    <form>
+      <table width="500">
+        <tr>
+          <td>
+            <label for="name">Full Name</label>
+            <br />
+            <input
+              type="text"
+              name="name"
+              placeholder="Enter you name"
+            />
+          </td>
+          <td>
+            <label for="username">Username</label>
+            <br />
+            <input
+              type="text"
+              name="username"
+              placeholder="Enter you username"
+            />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <label for="emain">Email</label>
+            <br />
+            <input
+              type="email"
+              name="email"
+              placeholder="Enter you email"
+            />
+          </td>
+          <td>
+            <label for="phone">Phone Number</label>
+            <br />
+            <input
+              type="tel"
+              name="phone"
+              placeholder="Enter you number"
+            />
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <label for="password">Password</label>
+            <br />
+            <input
+              type="password"
+              name="password"
+              placeholder="Enter you password"
+            />
+          </td>
+          <td>
+            <label for="confirm-pass">Confirm Password</label>
+            <br />
+            <input
+              type="password"
+              name="confirm-pass"
+              placeholder="Confirm your password"
+            />
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <label for="gender">Gender</label><br />
+            <table>
+              <tr>
+                <td>
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="Male"
+                  />
+                  Male
+                </td>
+                <td>
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="Female"
+                  />
+                  Female
+                </td>
+                <td>
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="unknown"
+                  />
+                  Prefer not to say
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td rowspan="2">
+            <input
+              width="400"
+              type="submit"
+              value="Register"
+            />
+          </td>
+        </tr>
+      </table>
+    </form>
+  </body>
+</html>
